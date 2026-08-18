@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nivo-Lab · سجل المختبر</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+
+  /* ============================================================
+     TOKENS
+     لوحة الألوان: خلفية شبه سوداء بتدرّج أزرق باهت، مع لون العنبر
+     (Amber) كلون توقيع مستوحى من مؤشرات أجهزة المختبر القديمة.
+     ============================================================ */
+  :root{
+    --bg: #0a0c10;
+    --bg-grid: #0d1015;
+    --surface: #12151b;
+    --surface-raised: #171b23;
+    --border: #232833;
+    --border-soft: #1a1e26;
+    --text-primary: #e9ecf1;
+    --text-secondary: #8b93a3;
+    --text-tertiary: #565e6c;
+    --accent: #ffb454;
+    --accent-soft: rgba(255,180,84,0.12);
+    --accent-glow: rgba(255,180,84,0.35);
+    --ok: #5eead4;
+    --err: #fb7185;
+
+    --font-display: 'Space Grotesk', sans-serif;
+    --font-body: 'Tajawal', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+
+    --radius: 14px;
+    --radius-sm: 8px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body{
+    min-height: 100vh;
+    background-image:
+      radial-gradient(circle at 50% 0%, rgba(255,180,84,0.06), transparent 45%),
+      radial-gradient(circle 1px at center, var(--border-soft) 1px, transparent 1px);
+    background-size: auto, 26px 26px;
+    background-position: 0 0, 0 0;
+  }
+
+  ::selection{ background: var(--accent-glow); color: #10130a; }
+
+  a{ color: inherit; }
+
+  :focus-visible{
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  /* ============================================================
+     HEADER / CONSOLE
+     ============================================================ */
+  .console{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 48px 28px 20px;
+  }
+
+  .console-top{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .brand{
+    display:flex;
+    align-items:center;
+    gap: 12px;
+  }
+
+  .brand-mark{
+    color: var(--accent);
+    font-size: 1.4rem;
+    line-height: 1;
+    text-shadow: 0 0 18px var(--accent-glow);
+  }
+
+  .brand h1{
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    letter-spacing: 0.03em;
+    margin: 0;
+    font-weight: 700;
+    direction: ltr;
+    display:inline-block;
+  }
+
+  .brand h1 .dot{ color: var(--accent); }
+
+  .status{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 7px 14px;
+    border-radius: 999px;
+  }
+
+  .status-dot{
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    box-shadow: 0 0 0 3px transparent;
+    transition: background .3s ease, box-shadow .3s ease;
+  }
+  .status-dot.live{ background: var(--ok); box-shadow: 0 0 0 3px rgba(94,234,212,0.15); }
+  .status-dot.error{ background: var(--err); box-shadow: 0 0 0 3px rgba(251,113,133,0.15); }
+  .status-dot.pending{ background: var(--accent); box-shadow: 0 0 0 3px rgba(255,180,84,0.15); animation: pulse 1.4s ease-in-out infinite; }
+
+  @keyframes pulse{
+    0%,100%{ opacity: 1; }
+    50%{ opacity: 0.35; }
+  }
+
+  .tagline{
+    margin: 18px 0 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    max-width: 60ch;
+  }
+
+  /* ============================================================
+     CONTROL BAR
+     ============================================================ */
+  .control-bar{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 0 28px 28px;
+    display:flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: stretch;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: linear-gradient(var(--bg) 78%, transparent);
+    padding-top: 14px;
+  }
+
+  .search-wrap{
+    position: relative;
+    flex: 1 1 260px;
+  }
+
+  .search-wrap svg{
+    position:absolute;
+    inset-inline-start: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px; height: 16px;
+    color: var(--text-tertiary);
+    pointer-events: none;
+  }
+
+  .search-wrap input{
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.92rem;
+    padding: 12px 14px 12px 14px;
+    padding-inline-start: 40px;
+    border-radius: var(--radius-sm);
+    transition: border-color .2s ease, background .2s ease;
+  }
+  .search-wrap input::placeholder{ color: var(--text-tertiary); }
+  .search-wrap input:hover{ border-color: #2c323d; }
+  .search-wrap input:focus{ border-color: var(--accent); background: var(--surface-raised); outline: none; }
+
+  .filter-wrap{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 0 6px 0 14px;
+    padding-inline-end: 14px;
+    padding-inline-start: 6px;
+  }
+
+  .filter-wrap label{
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .filter-wrap select{
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    padding: 12px 6px;
+    cursor: pointer;
+  }
+  .filter-wrap select:focus{ outline: none; }
+
+  .record-count{
+    display:flex;
+    align-items:center;
+    gap: 6px;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    color: var(--text-tertiary);
+    padding: 0 6px;
+    white-space: nowrap;
+  }
+  .record-count span{ color: var(--accent); font-weight: 600; }
+
+  /* ============================================================
+     GRID / CARDS
+     ============================================================ */
+  main.grid{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 8px 28px 80px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 18px;
+  }
+
+  .card{
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    display:flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    transition: border-color .25s ease, transform .25s ease, background .25s ease;
+  }
+
+  .card:hover{
+    border-color: #2e3542;
+    background: var(--surface-raised);
+    transform: translateY(-2px);
+  }
+
+  /* زوايا التركيز — تظهر عند المرور بالمؤشر لتوحي بمسح/فهرسة عيّنة */
+  .card::before,
+  .card::after{
+    content: "";
+    position:absolute;
+    width: 16px; height: 16px;
+    opacity: 0;
+    transition: opacity .25s ease, transform .25s ease;
+    pointer-events: none;
+  }
+  .card::before{
+    top: 8px; inset-inline-start: 8px;
+    border-top: 2px solid var(--accent);
+    border-inline-start: 2px solid var(--accent);
+    transform: translate(4px,4px);
+  }
+  .card::after{
+    bottom: 8px; inset-inline-end: 8px;
+    border-bottom: 2px solid var(--accent);
+    border-inline-end: 2px solid var(--accent);
+    transform: translate(-4px,-4px);
+  }
+  .card:hover::before,
+  .card:hover::after{
+    opacity: 1;
+    transform: translate(0,0);
+  }
+
+  .scan-line{
+    position:absolute;
+    inset-inline-start: 0;
+    width: 100%;
+    height: 1px;
+    top: 0;
+    background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .card:hover .scan-line{
+    opacity: 1;
+    animation: scan 1.6s linear infinite;
+  }
+  @keyframes scan{
+    0%{ top: 0; }
+    100%{ top: 100%; }
+  }
+
+  .card-top{
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .chip{
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: .03em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    color: var(--chip-color, var(--accent));
+    background: color-mix(in srgb, var(--chip-color, var(--accent)) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--chip-color, var(--accent)) 35%, transparent);
+    white-space: nowrap;
+  }
+
+  .card-index{
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+  }
+
+  .card-title{
+    font-family: var(--font-display);
+    font-size: 1.08rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin: 0;
+    color: var(--text-primary);
+  }
+
+  .card-summary{
+    font-size: 0.86rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card-bottom{
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px dashed var(--border);
+    display:flex;
+    align-items:center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-date{
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+  }
+
+  .card-link{
+    font-family: var(--font-mono);
+    font-size: 0.76rem;
+    color: var(--accent);
+    text-decoration: none;
+    display:flex;
+    align-items:center;
+    gap: 4px;
+    white-space: nowrap;
+  }
+  .card-link:hover{ text-decoration: underline; }
+
+  /* ============================================================
+     STATE PANELS (loading / empty / error)
+     ============================================================ */
+  .state-panel{
+    max-width: 1180px;
+    margin: 40px auto;
+    padding: 0 28px;
+    text-align: center;
+    color: var(--text-secondary);
+  }
+
+  .state-panel .state-inner{
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    background: var(--surface);
+  }
+
+  .spinner{
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    margin: 0 auto 16px;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin{ to{ transform: rotate(360deg); } }
+
+  .state-title{
+    font-family: var(--font-display);
+    color: var(--text-primary);
+    font-size: 1.05rem;
+    margin: 0 0 6px;
+  }
+
+  .state-detail{
+    font-size: 0.85rem;
+    max-width: 52ch;
+    margin: 0 auto;
+    line-height: 1.8;
+    color: var(--text-tertiary);
+  }
+
+  .state-detail code{
+    font-family: var(--font-mono);
+    background: var(--bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    direction: ltr;
+    display: inline-block;
+  }
+
+  footer{
+    text-align:center;
+    padding: 20px 28px 50px;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+  }
+
+  @media (max-width: 560px){
+    .console{ padding: 32px 18px 16px; }
+    .control-bar{ padding: 14px 18px 20px; }
+    main.grid{ padding: 8px 18px 60px; grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    .card, .status-dot, .scan-line{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <header class="console">
+    <div class="console-top">
+      <div class="brand">
+        <span class="brand-mark">◉</span>
+        <h1>NIVO<span class="dot">·</span>LAB</h1>
+      </div>
+      <div class="status">
+        <span class="status-dot pending" id="statusDot"></span>
+        <span id="statusText">جارِ الاتصال بالمختبر…</span>
+      </div>
+    </div>
+    <p class="tagline">سجل حيّ لأبحاث ومنتجات المختبر، يُقرأ مباشرةً من قاعدة بيانات Notion.</p>
+  </header>
+
+  <section class="control-bar">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input type="text" id="searchInput" placeholder="ابحث بالعنوان أو الملخص…" autocomplete="off">
+    </div>
+    <div class="filter-wrap">
+      <label for="categoryFilter">التصنيف</label>
+      <select id="categoryFilter">
+        <option value="all">كل التصنيفات</option>
+      </select>
+    </div>
+    <div class="record-count"><span id="recordCount">0</span> سجل معروض</div>
+  </section>
+
+  <main class="grid" id="grid"></main>
+
+  <div class="state-panel" id="loadingState">
+    <div class="state-inner">
+      <div class="spinner"></div>
+      <p class="state-title">جارِ سحب البيانات من المختبر…</p>
+    </div>
+  </div>
+
+  <div class="state-panel" id="emptyState" hidden>
+    <div class="state-inner">
+      <p class="state-title">لا توجد نتائج مطابقة</p>
+      <p class="state-detail">جرّب كلمة بحث مختلفة أو غيّر التصنيف المحدد.</p>
+    </div>
+  </div>
+
+  <div class="state-panel" id="errorState" hidden>
+    <div class="state-inner">
+      <p class="state-title">تعذّر الاتصال بقاعدة Notion</p>
+      <p class="state-detail" id="errorDetail"></p>
+    </div>
+  </div>
+
+  <footer>NIVO-LAB · مصدر البيانات: Notion Database</footer>
+
+<script>
+  /* ============================================================
+     ⚙️ الإعدادات — عدّل القيم هنا فقط
+     ============================================================ */
+
+  // 🔑 مفتاح Notion API الخاص بك
+  const NOTION_API_KEY = "Ntn_s19617474725u3c0YFyI2tQLMUeQvyPiZnUg6du7l7Vbzn";
+
+  // معرّف قاعدة بيانات Nivo-Lab (مُعبّأ مسبقاً)
+  const NOTION_DATABASE_ID = "ef809a82-2773-4ff3-9c00-0106d5584470";
+
+  const NOTION_VERSION = "2022-06-28";
+
+  /* ------------------------------------------------------------
+     تجاوز CORS عبر corsproxy.io
+     يتم تمرير طلب Notion عبر corsproxy.io بالصيغة الرسمية الحالية:
+     https://corsproxy.io/?url=<الرابط المشفّر>
+     ملاحظة: بدون حساب/مفتاح خاص بـ corsproxy.io، الخدمة تعمل مجاناً
+     فقط من نطاقات تطوير معيّنة (localhost، GitHub Pages، Netlify،
+     Vercel، CodeSandbox، إلخ). لو نشرت الصفحة على نطاق مخصص خاص بك
+     ولم تعمل، سجّل حساب مجاني في corsproxy.io واحصل على مفتاح خاص
+     بالخدمة نفسها (منفصل تماماً عن مفتاح Notion)، ثم أضفه في متغيّر
+     CORSPROXY_KEY أدناه.
+     ------------------------------------------------------------ */
+  const CORSPROXY_KEY = ""; // اختياري: مفتاح corsproxy.io الخاص بك (وليس مفتاح Notion)
+  const CORSPROXY_TARGET = `https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`;
+  const NOTION_API_URL = `https://corsproxy.io/?${CORSPROXY_KEY ? `key=${CORSPROXY_KEY}&` : ""}url=${encodeURIComponent(CORSPROXY_TARGET)}`;
+
+  const CHIP_PALETTE = ["#ffb454", "#5eead4", "#a78bfa", "#fb7185", "#60a5fa", "#f472b6"];
+
+  /* ============================================================
+     الحالة العامة
+     ============================================================ */
+  let allRecords = [];
+
+  const els = {
+    grid: document.getElementById("grid"),
+    search: document.getElementById("searchInput"),
+    filter: document.getElementById("categoryFilter"),
+    count: document.getElementById("recordCount"),
+    statusDot: document.getElementById("statusDot"),
+    statusText: document.getElementById("statusText"),
+    loading: document.getElementById("loadingState"),
+    empty: document.getElementById("emptyState"),
+    error: document.getElementById("errorState"),
+    errorDetail: document.getElementById("errorDetail"),
+  };
+
+  /* ============================================================
+     جلب البيانات من Notion
+     ============================================================ */
+  async function fetchDatabase() {
+    const res = await fetch(NOTION_API_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${NOTION_API_KEY}`,
+        "Notion-Version": NOTION_VERSION,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        page_size: 100,
+        sorts: [{ property: "Date", direction: "descending" }],
+      }),
+    });
+
+    if (!res.ok) {
+      let message = `HTTP ${res.status}`;
+      try {
+        const errBody = await res.json();
+        if (errBody && errBody.message) message = errBody.message;
+      } catch (_) {}
+      throw new Error(message);
+    }
+
+    const data = await res.json();
+    return data.results.map(parseNotionPage);
+  }
+
+  function plainText(richArray) {
+    return (richArray || []).map((t) => t.plain_text).join("").trim();
+  }
+
+  function parseNotionPage(page) {
+    const props = page.properties || {};
+    return {
+      id: page.id,
+      title: plainText(props["Title"] && props["Title"].title) || "بدون عنوان",
+      category: plainText(props["Category"] && props["Category"].rich_text) || "غير مصنّف",
+      summary: plainText(props["Summary"] && props["Summary"].rich_text) || "",
+      date: (props["Date"] && props["Date"].date && props["Date"].date.start) || "",
+      link: (props["Link"] && props["Link"].url) || "",
+    };
+  }
+
+  /* ============================================================
+     أدوات مساعدة للعرض
+     ============================================================ */
+  function chipColor(category) {
+    let hash = 0;
+    for (let i = 0; i < category.length; i++) hash = (hash + category.charCodeAt(i) * (i + 1)) % CHIP_PALETTE.length;
+    return CHIP_PALETTE[hash];
+  }
+
+  function formatDate(iso) {
+    if (!iso) return "—";
+    try {
+      const d = new Date(iso);
+      return new Intl.DateTimeFormat("ar", { year: "numeric", month: "long", day: "numeric" }).format(d);
+    } catch (_) {
+      return iso;
+    }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  /* ============================================================
+     العرض والتصفية
+     ============================================================ */
+  function populateCategoryFilter(records) {
+    const categories = [...new Set(records.map((r) => r.category))].sort((a, b) => a.localeCompare(b, "ar"));
+    els.filter.innerHTML = `<option value="all">كل التصنيفات</option>` +
+      categories.map((c) => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  }
+
+  function renderCards(records) {
+    if (records.length === 0) {
+      els.grid.innerHTML = "";
+      els.empty.hidden = false;
+      els.count.textContent = "0";
+      return;
+    }
+    els.empty.hidden = true;
+
+    els.grid.innerHTML = records
+      .map((r, i) => `
+        <article class="card">
+          <span class="scan-line"></span>
+          <div class="card-top">
+            <span class="chip" style="--chip-color:${chipColor(r.category)}">${escapeHtml(r.category)}</span>
+            <span class="card-index">#${String(i + 1).padStart(3, "0")}</span>
+          </div>
+          <h3 class="card-title">${escapeHtml(r.title)}</h3>
+          ${r.summary ? `<p class="card-summary">${escapeHtml(r.summary)}</p>` : ""}
+          <div class="card-bottom">
+            <time class="card-date">${formatDate(r.date)}</time>
+            ${r.link ? `<a class="card-link" href="${escapeHtml(r.link)}" target="_blank" rel="noopener noreferrer">المصدر ↗</a>` : `<span class="card-date">لا يوجد رابط</span>`}
+          </div>
+        </article>
+      `)
+      .join("");
+
+    els.count.textContent = records.length;
+  }
+
+  function applyFilters() {
+    const q = els.search.value.trim().toLowerCase();
+    const cat = els.filter.value;
+
+    const filtered = allRecords.filter((r) => {
+      const matchesQuery = !q || r.title.toLowerCase().includes(q) || r.summary.toLowerCase().includes(q);
+      const matchesCategory = cat === "all" || r.category === cat;
+      return matchesQuery && matchesCategory;
+    });
+
+    renderCards(filtered);
+  }
+
+  /* ============================================================
+     الحالات (تحميل / نجاح / خطأ)
+     ============================================================ */
+  function setStatus(state, text) {
+    els.statusDot.className = `status-dot ${state}`;
+    els.statusText.textContent = text;
+  }
+
+  function showError(message) {
+    els.loading.hidden = true;
+    els.error.hidden = false;
+    setStatus("error", "غير متصل");
+    els.errorDetail.innerHTML = `
+      ${escapeHtml(message)}<br><br>
+      تأكّد من صحة <code>NOTION_API_KEY</code>، ومن مشاركة قاعدة البيانات مع
+      الـ Integration داخل Notion (Share → دعوة الـ Integration). إن استمر
+      الخطأ وكان نطاق نشرك ليس ضمن النطاقات المجانية المدعومة من
+      corsproxy.io، راجع التعليق أعلى الكود بخصوص <code>CORSPROXY_KEY</code>.
+    `;
+  }
+
+  /* ============================================================
+     التهيئة
+     ============================================================ */
+  async function init() {
+    if (!NOTION_API_KEY || NOTION_API_KEY.includes("ضع_مفتاح")) {
+      showError("لم يتم إدخال NOTION_API_KEY بعد. أضف مفتاحك في أعلى الكود.");
+      return;
+    }
+
+    try {
+      setStatus("pending", "جارِ الاتصال بالمختبر…");
+      allRecords = await fetchDatabase();
+      els.loading.hidden = true;
+      populateCategoryFilter(allRecords);
+      renderCards(allRecords);
+      setStatus("live", "متصل مباشرة");
+    } catch (err) {
+      showError(err.message || "خطأ غير معروف أثناء الاتصال بـ Notion.");
+    }
+  }
+
+  els.search.addEventListener("input", applyFilters);
+  els.filter.addEventListener("change", applyFilters);
+
+  init();
+</script>
+</body>
+</html>
