@@ -524,28 +524,13 @@
      ⚙️ الإعدادات — عدّل القيم هنا فقط
      ============================================================ */
 
-  // 🔑 مفتاح Notion API الخاص بك
   const NOTION_API_KEY = "ntn_s19617474725u3c0YFyI2tQLMUeQvyPiZnUg6du7l7Vbzn";
-
-  // معرّف قاعدة بيانات Nivo-Lab (مُعبّأ مسبقاً)
   const NOTION_DATABASE_ID = "ef809a82-2773-4ff3-9c00-0106d5584470";
-
   const NOTION_VERSION = "2022-06-28";
 
-  /* ------------------------------------------------------------
-     تجاوز CORS عبر corsproxy.io
-     يتم تمرير طلب Notion عبر corsproxy.io بالصيغة الرسمية الحالية:
-     https://corsproxy.io/?url=<الرابط المشفّر>
-     ملاحظة: بدون حساب/مفتاح خاص بـ corsproxy.io، الخدمة تعمل مجاناً
-     فقط من نطاقات تطوير معيّنة (localhost، GitHub Pages، Netlify،
-     Vercel، CodeSandbox، إلخ). لو نشرت الصفحة على نطاق مخصص خاص بك
-     ولم تعمل، سجّل حساب مجاني في corsproxy.io واحصل على مفتاح خاص
-     بالخدمة نفسها (منفصل تماماً عن مفتاح Notion)، ثم أضفه في متغيّر
-     CORSPROXY_KEY أدناه.
-     ------------------------------------------------------------ */
-  const CORSPROXY_KEY = ""; // اختياري: مفتاح corsproxy.io الخاص بك (وليس مفتاح Notion)
-  const CORSPROXY_TARGET = `https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`;
-  const NOTION_API_URL = `https://corsproxy.io/?${CORSPROXY_KEY ? `key=${CORSPROXY_KEY}&` : ""}url=${encodeURIComponent(CORSPROXY_TARGET)}`;
+  // رابط البروكسي المباشر بدون تعقيد الترميز
+  const NOTION_TARGET_URL = `https://api.notion.com/v1/databases/${NOTION_DATABASE_ID}/query`;
+  const NOTION_API_URL = `https://corsproxy.io/?${NOTION_TARGET_URL}`;
 
   const CHIP_PALETTE = ["#ffb454", "#5eead4", "#a78bfa", "#fb7185", "#60a5fa", "#f472b6"];
 
@@ -576,7 +561,7 @@
       headers: {
         "Authorization": `Bearer ${NOTION_API_KEY}`,
         "Notion-Version": NOTION_VERSION,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
       body: JSON.stringify({
         page_size: 100,
@@ -705,9 +690,7 @@
     els.errorDetail.innerHTML = `
       ${escapeHtml(message)}<br><br>
       تأكّد من صحة <code>NOTION_API_KEY</code>، ومن مشاركة قاعدة البيانات مع
-      الـ Integration داخل Notion (Share → دعوة الـ Integration). إن استمر
-      الخطأ وكان نطاق نشرك ليس ضمن النطاقات المجانية المدعومة من
-      corsproxy.io، راجع التعليق أعلى الكود بخصوص <code>CORSPROXY_KEY</code>.
+      الـ Integration داخل Notion.
     `;
   }
 
@@ -715,11 +698,6 @@
      التهيئة
      ============================================================ */
   async function init() {
-    if (!NOTION_API_KEY || NOTION_API_KEY.includes("ضع_مفتاح")) {
-      showError("لم يتم إدخال NOTION_API_KEY بعد. أضف مفتاحك في أعلى الكود.");
-      return;
-    }
-
     try {
       setStatus("pending", "جارِ الاتصال بالمختبر…");
       allRecords = await fetchDatabase();
